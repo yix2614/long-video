@@ -107,7 +107,6 @@ const FullScreenVideoContainer: React.FC<FullScreenVideoContainerProps> = ({ onT
                   aspectRatio: aspectRatios[idx] ? aspectRatios[idx] : 'auto',
                   width: aspectRatios[idx] ? (aspectRatios[idx] > 1 ? '100%' : 'auto') : '100%',
                   height: aspectRatios[idx] ? (aspectRatios[idx] > 1 ? 'auto' : '100%') : '100%',
-                  maxWidth: isCommentsOpen ? 'calc(100% - 32px)' : '100%',
                   maxHeight: isCommentsOpen ? 'calc(100% - 32px)' : '100%',
                   margin: 'auto',
                   overflow: 'visible', // Allow ambient to spill out of this wrapper specifically
