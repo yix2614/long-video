@@ -78,8 +78,8 @@ const FullScreenPage: React.FC = () => {
         gap: showComments ? layout.gap : 0,
         paddingTop: 0,
         paddingBottom: 0,
-        minWidth: '600px', // Enforce minimum width visually
-        overflowX: 'auto', // Allow scrolling if window is smaller than 600px
+        // Removed minWidth: '600px' to prevent forced horizontal scroll
+        // overflowX: 'auto', // Removed overflowX to prevent horizontal scroll
       }}
     >
       <FullScreenVideoContainer 

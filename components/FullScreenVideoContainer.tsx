@@ -111,6 +111,18 @@ const FullScreenVideoContainer: React.FC<FullScreenVideoContainerProps> = ({ onT
     };
   }, []);
 
+  // Optimize aspect ratio calculation with useMemo if possible, but it depends on state.
+  // Instead, prevent frequent updates by checking value.
+  const updateAspectRatio = (idx: number, width: number, height: number) => {
+      if (!width || !height) return;
+      const ratio = width / height;
+      setAspectRatios(prev => {
+          // Use a small epsilon for float comparison
+          if (prev[idx] && Math.abs(prev[idx] - ratio) < 0.001) return prev;
+          return {...prev, [idx]: ratio};
+      });
+  };
+
   return (
     <main 
       className={`flex-1 h-full relative bg-black flex items-center justify-center transition-all duration-400 ease-[cubic-bezier(0.25,0.25,0,1)] ${!isControlsVisible ? 'cursor-none' : ''}`}
@@ -127,15 +139,29 @@ const FullScreenVideoContainer: React.FC<FullScreenVideoContainerProps> = ({ onT
             transition: 'transform 150ms cubic-bezier(0.25, 0.25, 0, 1)'
           }}
         >
-          {VIDEO_LIST.map((video, idx) => (
-            <div key={video.id} className="w-full h-full shrink-0 bg-transparent flex items-center justify-center relative overflow-hidden">
+          {VIDEO_LIST.map((video, idx) => {
+             // Calculate scale logic outside JSX for cleaner render
+             const ratio = aspectRatios[idx];
+             const isLandscape = ratio && ratio > 1;
+             const isAlmostSquareLandscape = isLandscape && ratio < 1.1;
+             
+             // Optimized transform style
+             const ambientScale = isAlmostSquareLandscape ? 'scale(1.05)' : 'scale(1.15)';
+             const ambientOpacity = isLandscape ? 0.3 : 0.4;
+
+             return (
+            <div 
+                key={video.id} 
+                className="w-full h-full shrink-0 bg-transparent flex items-center justify-center relative"
+                style={{ clipPath: 'inset(0 -100vw 0 -100vw)' }} // Clip vertically (0), allow horizontal overflow (-100vw)
+            >
               {/* Aspect Ratio Wrapper */}
               <div 
                 className={`relative flex items-center justify-center transition-all duration-400 ease-[cubic-bezier(0.25,0.25,0,1)] ${isCommentsOpen ? 'rounded-[12px]' : ''}`}
                 style={{
-                  aspectRatio: aspectRatios[idx] ? aspectRatios[idx] : 'auto',
-                  width: aspectRatios[idx] ? (aspectRatios[idx] > 1 ? '100%' : 'auto') : '100%',
-                  height: aspectRatios[idx] ? (aspectRatios[idx] > 1 ? 'auto' : '100%') : '100%',
+                  aspectRatio: ratio ? ratio : 'auto',
+                  width: ratio ? (ratio > 1 ? '100%' : 'auto') : '100%',
+                  height: ratio ? (ratio > 1 ? 'auto' : '100%') : '100%',
                   maxHeight: '100%',
                   margin: 'auto',
                   overflow: 'visible', // Allow ambient to spill out of this wrapper specifically
@@ -145,9 +171,14 @@ const FullScreenVideoContainer: React.FC<FullScreenVideoContainerProps> = ({ onT
                 <div className="absolute inset-0 flex items-center justify-center -z-10">
                     <div 
                         className="w-full h-full relative"
-                        style={{ transform: 'scale(1.15)' }}
+                        style={{ 
+                          transform: ambientScale
+                        }}
                     >
-                        <AmbientBackground posterUrl={video.poster || ''} />
+                        <AmbientBackground 
+                          posterUrl={video.poster || ''} 
+                          opacity={ambientOpacity}
+                        />
                     </div>
                 </div>
                 
@@ -172,8 +203,7 @@ const FullScreenVideoContainer: React.FC<FullScreenVideoContainerProps> = ({ onT
                       }
                       }}
                       onLoadedMetadata={(e) => {
-                        const ratio = e.currentTarget.videoWidth / e.currentTarget.videoHeight;
-                        setAspectRatios(prev => ({...prev, [idx]: ratio}));
+                        updateAspectRatio(idx, e.currentTarget.videoWidth, e.currentTarget.videoHeight);
                         if (idx === currentIndex) {
                             setDuration(e.currentTarget.duration);
                         }
@@ -182,7 +212,8 @@ const FullScreenVideoContainer: React.FC<FullScreenVideoContainerProps> = ({ onT
                 </div>
               </div>
             </div>
-          ))}
+          );
+          })}
         </div>
 
         {/* Top Controls */}
